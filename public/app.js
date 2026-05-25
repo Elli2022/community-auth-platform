@@ -587,11 +587,50 @@ $("#composer-clear-img")?.addEventListener("click", () => {
   $("#composer-image").value = "";
 });
 
+function validateUsername(value) {
+  const v = (value || "").trim();
+  if (!v) return "Användarnamn krävs.";
+  if (v.includes("@") || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+    return "Användarnamn kan inte vara en e-postadress. Använd fältet ”E-post” nedan.";
+  }
+  if (v.length <= 4 || v.length >= 25) return "Användarnamn måste vara 5–24 tecken.";
+  if (!/^[a-z][a-z0-9]+$/.test(v)) {
+    return "Endast små bokstäver (a–z) och siffror, måste börja med en bokstav.";
+  }
+  return "";
+}
+
+function translateApiError(msg) {
+  if (!msg) return "Något gick fel.";
+  if (msg.includes("Invalid string for username")) {
+    return "Ogiltigt användarnamn. Använd 5–24 tecken med små bokstäver och siffror — inte e-post.";
+  }
+  if (msg.includes("email already registered")) return "E-postadressen är redan registrerad.";
+  if (msg.includes("user already exists")) return "Användarnamnet finns redan.";
+  if (msg.includes("Provided email is invalid") || msg.includes("Ogiltig e-post")) {
+    return "Ogiltig e-postadress.";
+  }
+  if (msg.startsWith("Needed parameter missing") || msg.startsWith("Saknad uppgift")) {
+    return "Fyll i alla obligatoriska fält.";
+  }
+  return msg;
+}
+
 $("#register-form")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
+  const usernameRaw = fd.get("username")?.trim() || "";
+  const usernameErr = validateUsername(usernameRaw);
+  const userInput = e.target.elements.username;
+  if (usernameErr) {
+    $("#register-error").textContent = usernameErr;
+    userInput?.classList.add("invalid");
+    return toast(usernameErr, "error");
+  }
+  userInput?.classList.remove("invalid");
+
   const payload = {
-    username: fd.get("username")?.trim(),
+    username: usernameRaw.toLowerCase(),
     password: fd.get("password"),
     bio: fd.get("bio")?.trim() || undefined,
     email: fd.get("email")?.trim() || undefined,
@@ -610,9 +649,16 @@ $("#register-form")?.addEventListener("submit", async (e) => {
     registerAvatarData = null;
     registerAvatarId = 1;
   } catch (err) {
-    $("#register-error").textContent = err.message;
-    toast(err.message, "error");
+    const msg = translateApiError(err.message);
+    $("#register-error").textContent = msg;
+    toast(msg, "error");
   }
+});
+
+$("#register-form")?.elements.username?.addEventListener("input", (e) => {
+  const err = validateUsername(e.target.value);
+  e.target.classList.toggle("invalid", Boolean(err));
+  if (!err) $("#register-error").textContent = "";
 });
 
 $("#register-upload")?.addEventListener("change", async (e) => {

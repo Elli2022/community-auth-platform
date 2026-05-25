@@ -5,9 +5,16 @@ const ERROR_MSG = {
     EXISTING_EMAIL: "email already registered",
     WALL_USER_NOT_FOUND: "username must be registered before posting",
     WALL_MESSAGE_REQUIRED: "message is required",
-    INVALID_EMAIL: "Provided email is invalid",
+    INVALID_EMAIL: "Ogiltig e-postadress.",
     INVALID_STRING: "Invalid string for ",
-    MISSING_PARAMETER: "Needed parameter missing.",
+    INVALID_USERNAME_EMAIL:
+      "Användarnamn kan inte vara en e-postadress. Fyll i e-post i fältet ”E-post” i stället.",
+    INVALID_USERNAME_LENGTH:
+      "Användarnamn måste vara 5–24 tecken.",
+    INVALID_USERNAME_CHARS:
+      "Användarnamn får bara innehålla små bokstäver (a–z) och siffror, och måste börja med en bokstav.",
+    INVALID_USERNAME: "Ogiltigt användarnamn.",
+    MISSING_PARAMETER: "Saknad uppgift: ",
     INVALID_CREDENTIALS: "Invalid credentials",
   },
 };

@@ -85,7 +85,14 @@ const postEP = async (req: AuthedRequest, res: Response) => {
       data: stripPassword(results as Record<string, unknown>),
     });
   } catch (err) {
-    res.status(400).json({ err: 1, message: errorMessage(err) });
+    const msg = errorMessage(err);
+    const friendly =
+      msg === "user already exists"
+        ? "Användarnamnet finns redan."
+        : msg === "email already registered"
+          ? "E-postadressen är redan registrerad."
+          : msg;
+    res.status(400).json({ err: 1, message: friendly });
   }
 };
 

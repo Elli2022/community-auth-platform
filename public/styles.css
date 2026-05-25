@@ -311,6 +311,8 @@ a:hover { text-decoration: underline; }
   gap: 0.75rem;
 }
 .field-grid label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; font-weight: 600; }
+.field-hint { font-weight: 400; font-size: 0.8rem; color: var(--muted); }
+.field-grid input.invalid { border-color: var(--danger); }
 .field-grid input, .field-grid textarea {
   font: inherit;
   padding: 0.5rem;

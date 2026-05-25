@@ -47,11 +47,22 @@ export default function makeInputObjectFactory({
   }) {
     checkRequiredParam({ param: username, paramName: "username", errorMsgs });
 
-    if (typeof username !== "string" || !strValidator(username)) {
-      throw new Error(`${errorMsgs.INVALID_STRING}username`);
+    if (typeof username !== "string") {
+      throw new Error(errorMsgs.INVALID_USERNAME ?? errorMsgs.INVALID_STRING + "username");
     }
 
-    return sanitize(username);
+    const value = username.trim();
+    if (value.includes("@") || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      throw new Error(errorMsgs.INVALID_USERNAME_EMAIL);
+    }
+    if (value.length <= 4 || value.length >= 25) {
+      throw new Error(errorMsgs.INVALID_USERNAME_LENGTH);
+    }
+    if (!/^[a-z][a-z0-9]+$/.test(value)) {
+      throw new Error(errorMsgs.INVALID_USERNAME_CHARS);
+    }
+
+    return sanitize(value);
   }
 
   function checkPassword({
@@ -114,15 +125,6 @@ export default function makeInputObjectFactory({
     if (param === undefined || param === null || param === "") {
       throw new Error(`${errorMsgs.MISSING_PARAMETER}${paramName}`);
     }
-  }
-
-  function strValidator(str: string) {
-    return (
-      str.length > 4 &&
-      str.length < 25 &&
-      /^[a-z0-9]+$/.test(str) &&
-      /^[a-z]/.test(str)
-    );
   }
 
   return Object.freeze({ inputObj });
