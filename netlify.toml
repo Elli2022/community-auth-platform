@@ -5,7 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["build/**"]
+  included_files = ["build/**", "db/**"]
 
 [functions.api]
   timeout = 26

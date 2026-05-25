@@ -1,32 +1,42 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { expect } from "chai";
-import {
-  checkDir,
-  readFromFile,
-  writeToFile,
-} from "../../app/component/data-access/index";
 import createGet from "../../app/component/use-cases/get";
+import makeDataManipulation from "../../app/component/entities/data-manipulation";
 import { logger } from "../../app/libs/logger";
 import config from "../../config";
+import {
+  setupTestDatabase,
+  teardownTestDatabase,
+  usersRepository,
+} from "../helpers/db";
 
-const get = (params: { params?: unknown }) =>
+const get = () =>
   createGet({
-    checkDir,
-    readFromFile,
+    usersRepository,
+    makeDataManipulation,
     logger,
-  }).get(params, config.FILE_DB_PATH, config.FILE_DB_NAME);
+  }).get();
 
 describe("get", () => {
   before(async () => {
-    const users = [config.TEST_DATA.user1, config.TEST_DATA.user2];
-    await mkdir(config.FILE_FOLDER_PATH, { recursive: true });
-    await writeFile(config.FILE_DB_PATH, JSON.stringify(users));
+    await setupTestDatabase();
+    await usersRepository.create({
+      username: config.TEST_DATA.user1.username,
+      password: "test-hash",
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
+    await usersRepository.create({
+      username: config.TEST_DATA.user2.username,
+      password: "test-hash",
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
   });
 
-  after(async () => rm(config.FILE_FOLDER_PATH, { recursive: true, force: true }));
+  after(async () => teardownTestDatabase());
 
   it("should return a list of users", async () => {
-    const results = await get({ params: undefined });
+    const results = await get();
     expect(results).to.have.length(2);
   });
 });

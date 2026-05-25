@@ -87,6 +87,21 @@ Requires **Node.js 22+**.
 
 **Live:** [nodejs-3rd-challenge-api.netlify.app](https://nodejs-3rd-challenge-api.netlify.app)
 
+### Database (PostgreSQL)
+
+User data is stored in **PostgreSQL** (persistent, works on Netlify).
+
+**Lokalt med Docker:**
+
+```bash
+cp .env.example .env
+npm run db:up          # startar Postgres på port 5432
+npm run db:migrate     # skapar tabellen users
+npm run dev
+```
+
+**Produktion (Netlify):** skapa en gratis databas på [Neon](https://neon.tech), kopiera connection string och lägg in som `DATABASE_URL` under Netlify → Site settings → Environment variables.
+
 ### Security
 
 - **sanitize-html** is pinned to `^2.17.4` (fixes CVE-2026-44990).

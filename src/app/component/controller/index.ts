@@ -26,7 +26,7 @@ function stripPasswords(users: unknown): unknown[] {
 
 const getEP = async (_req: Request, res: Response) => {
   try {
-    const results = await get({ params: undefined });
+    const results = await get();
     res.json({ err: 0, data: stripPasswords(results) });
   } catch (err) {
     logger.info(`[EP][GET] ${errorMessage(err)}`);
@@ -37,7 +37,10 @@ const getEP = async (_req: Request, res: Response) => {
 const postEP = async (req: Request, res: Response) => {
   try {
     const results = await post({ params: req.body });
-    res.status(201).json({ err: 0, data: stripPassword(results as Record<string, unknown>) });
+    res.status(201).json({
+      err: 0,
+      data: stripPassword(results as Record<string, unknown>),
+    });
   } catch (err) {
     logger.info(`[EP][POST] ${errorMessage(err)}`);
     res.status(400).json({ err: 1, message: errorMessage(err) });

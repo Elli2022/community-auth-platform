@@ -12,11 +12,15 @@
     "start": "node build/app/index.js",
     "dev": "tsx watch src/app/index.ts",
     "test": "mocha --exit -r tsx/cjs src/tests/**/*.spec.ts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "tsx scripts/migrate.ts",
     "audit": "npm audit"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
