@@ -69,13 +69,28 @@ CREATE TABLE IF NOT EXISTS friendships (
 CREATE INDEX IF NOT EXISTS idx_friendships_users ON friendships (user_a, user_b);
 `;
 
+const MIGRATION_LOCK_ID = 8815227;
+
 export async function ensureSchema(): Promise<void> {
   const sql = getSql();
-  const statements = SCHEMA_SQL.split(";")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  await sql`SELECT pg_advisory_lock(${MIGRATION_LOCK_ID})`;
+  try {
+    const statements = SCHEMA_SQL.split(";")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-  for (const statement of statements) {
-    await sql.query(statement);
+    for (const statement of statements) {
+      try {
+        await sql.query(statement);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("already exists") || msg.includes("duplicate")) {
+          continue;
+        }
+        throw err;
+      }
+    }
+  } finally {
+    await sql`SELECT pg_advisory_unlock(${MIGRATION_LOCK_ID})`;
   }
 }
