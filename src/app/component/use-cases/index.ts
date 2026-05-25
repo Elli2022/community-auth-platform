@@ -2,12 +2,14 @@ import config from "../../../config";
 import { usersRepository } from "../data-access";
 import { wallRepository } from "../data-access/wall";
 import { socialRepository } from "../data-access/social";
+import { notificationsRepository } from "../data-access/notifications";
+import { messagesRepository } from "../data-access/messages";
 import { makeInputObj } from "../entities";
 import makeDataManipulation from "../entities/data-manipulation";
 import { logger } from "../../libs/logger";
 import createGet from "./get";
 import createPost from "./post";
-import { createWallGet, createWallPost } from "./wall";
+import { createWallGet, createWallPost, createSharePost } from "./wall";
 import { createAuthLogin } from "./auth";
 import {
   createProfileGet,
@@ -16,13 +18,46 @@ import {
 } from "./profile";
 import { createFeedGet } from "./feed";
 import { createSocialActions } from "./social";
+import { createNotificationsUseCase } from "./notifications";
+import { createMessagesUseCase } from "./messages";
 
 const errorMsgs = config.ERROR_MSG;
+
 const social = createSocialActions({
   socialRepository,
   wallRepository,
   usersRepository,
+  notificationsRepository,
 });
+
+const notifications = createNotificationsUseCase({
+  notificationsRepository,
+  usersRepository,
+});
+
+const messages = createMessagesUseCase({
+  messagesRepository,
+  notificationsRepository,
+  socialRepository,
+  usersRepository,
+});
+
+const sharePost = ({
+  postId,
+  authUsername,
+  params,
+}: {
+  postId: number;
+  authUsername: string;
+  params: Record<string, unknown>;
+}) =>
+  createSharePost({
+    wallRepository,
+    usersRepository,
+    socialRepository,
+    notificationsRepository,
+    makeDataManipulation,
+  }).share({ postId, authUsername, params });
 
 const post = ({ params }: { params: Record<string, unknown> }) =>
   createPost({
@@ -110,9 +145,12 @@ export {
   getFeed,
   getWall,
   postWall,
+  sharePost,
   login,
   getProfile,
   updateProfile,
   deleteProfile,
   social,
+  notifications,
+  messages,
 };

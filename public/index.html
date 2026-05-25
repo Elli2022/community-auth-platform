@@ -21,6 +21,11 @@
       </div>
       <div class="topnav-actions">
         <a href="#/" class="nav-btn" data-nav="home" title="Hem">🏠</a>
+        <a href="#/messages" class="nav-btn nav-messages" id="nav-messages" title="Meddelanden" hidden>💬<span id="msg-badge" class="nav-badge" hidden></span></a>
+        <div class="notif-wrap" id="notif-wrap" hidden>
+          <button type="button" id="btn-notifications" class="nav-btn" title="Notiser">🔔<span id="notif-badge" class="nav-badge" hidden></span></button>
+          <div id="notif-panel" class="notif-panel" hidden></div>
+        </div>
         <a href="#/register" class="nav-btn" data-nav="register" title="Registrera" id="nav-register">➕</a>
         <span id="health-dot" class="health-dot" title="API-status"></span>
         <div id="session-box" class="session-box" hidden>
@@ -42,6 +47,7 @@
         <a href="#/" class="sidebar-link active">📰 Nyhetsflöde</a>
         <a href="#/register" class="sidebar-link">👤 Skapa konto</a>
         <a id="sidebar-profile" href="#" class="sidebar-link" hidden>🙂 Min profil</a>
+        <a href="#/messages" id="sidebar-messages" class="sidebar-link" hidden>💬 Meddelanden</a>
         <hr />
         <h3 class="sidebar-title">Genvägar</h3>
         <div id="sidebar-friends" class="sidebar-friends"></div>
@@ -119,6 +125,23 @@
           <button type="submit" class="btn btn-fb btn-block">Registrera</button>
           <p class="muted center"><a href="#/">Har du konto? Logga in</a></p>
         </form>
+      </div>
+    </div>
+
+    <div id="view-messages" class="view-messages" hidden>
+      <div class="messages-layout card">
+        <aside class="messages-list-panel">
+          <h2>Meddelanden</h2>
+          <div id="conversations-list"></div>
+        </aside>
+        <main class="messages-thread-panel">
+          <div id="thread-header" class="thread-header muted">Välj en konversation</div>
+          <div id="thread-messages" class="thread-messages"></div>
+          <form id="thread-form" class="thread-form" hidden>
+            <input type="text" id="thread-input" placeholder="Skriv ett meddelande…" maxlength="1000" autocomplete="off" />
+            <button type="submit" class="btn btn-fb">Skicka</button>
+          </form>
+        </main>
       </div>
     </div>
 

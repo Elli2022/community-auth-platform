@@ -67,6 +67,32 @@ CREATE TABLE IF NOT EXISTS friendships (
 );
 
 CREATE INDEX IF NOT EXISTS idx_friendships_users ON friendships (user_a, user_b);
+
+ALTER TABLE wall_posts ADD COLUMN IF NOT EXISTS shared_post_id INTEGER REFERENCES wall_posts(id) ON DELETE SET NULL;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  recipient VARCHAR(24) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  actor VARCHAR(24) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  type VARCHAR(24) NOT NULL,
+  ref_id INTEGER,
+  preview TEXT NOT NULL DEFAULT '',
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications (recipient, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS direct_messages (
+  id SERIAL PRIMARY KEY,
+  sender VARCHAR(24) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  recipient VARCHAR(24) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_thread ON direct_messages (sender, recipient, created_at ASC);
 `;
 
 const MIGRATION_LOCK_ID = 8815227;

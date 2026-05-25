@@ -8,6 +8,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 let registerAvatarData = null;
 let registerAvatarId = 1;
 let composerImageData = null;
+let activeChatUser = null;
 
 function getSession() {
   try {
@@ -90,8 +91,10 @@ function readFileAsDataUrl(file) {
 function parseRoute() {
   const h = location.hash.slice(1) || "/";
   if (h === "/register") return { view: "register" };
-  const m = h.match(/^\/profile\/([^/]+)/);
-  if (m) return { view: "profile", username: decodeURIComponent(m[1]) };
+  const prof = h.match(/^\/profile\/([^/]+)/);
+  if (prof) return { view: "profile", username: decodeURIComponent(prof[1]) };
+  const msg = h.match(/^\/messages\/?([^/]*)/);
+  if (msg) return { view: "messages", username: msg[1] ? decodeURIComponent(msg[1]) : null };
   return { view: "home" };
 }
 
@@ -99,6 +102,8 @@ function showView(route) {
   $("#view-home").hidden = route.view !== "home";
   $("#view-register").hidden = route.view !== "register";
   $("#view-profile").hidden = route.view !== "profile";
+  $("#view-messages").hidden = route.view !== "messages";
+  $("#notif-panel").hidden = true;
 
   if (route.view === "home") {
     loadFeed();
@@ -107,6 +112,8 @@ function showView(route) {
     initRegisterAvatars();
   } else if (route.view === "profile") {
     loadProfile(route.username);
+  } else if (route.view === "messages") {
+    loadMessagesView(route.username);
   }
 }
 
@@ -119,15 +126,41 @@ function syncNav() {
   $("#guest-banner").hidden = logged;
   $("#nav-register").hidden = logged;
 
+  $("#notif-wrap").hidden = !logged;
+  $("#nav-messages").hidden = !logged;
+  $("#sidebar-messages").hidden = !logged;
+
   if (logged) {
     const u = s.user;
     const href = `#/profile/${encodeURIComponent(u.username)}`;
     $("#nav-me").href = href;
     $("#sidebar-profile").href = href;
     $("#sidebar-profile").hidden = false;
+    $("#sidebar-messages").href = "#/messages";
     $("#nav-avatar").src = avatarSrc(u);
     $("#composer-avatar").src = avatarSrc(u);
+    refreshBadges();
   }
+}
+
+async function refreshBadges() {
+  if (!getSession()?.token) return;
+  try {
+    const { data } = await api("/api/v1/notifications");
+    const nb = $("#notif-badge");
+    if (data.unread_count > 0) {
+      nb.textContent = String(data.unread_count);
+      nb.hidden = false;
+    } else nb.hidden = true;
+  } catch { /* ignore */ }
+  try {
+    const { data } = await api("/api/v1/messages");
+    const mb = $("#msg-badge");
+    if (data.unread_count > 0) {
+      mb.textContent = String(data.unread_count);
+      mb.hidden = false;
+    } else mb.hidden = true;
+  } catch { /* ignore */ }
 }
 
 async function checkHealth() {
@@ -171,6 +204,22 @@ function initRegisterAvatars() {
   });
 }
 
+function renderSharedEmbed(sp) {
+  if (!sp) return "";
+  const a = sp.author || {};
+  const img = sp.has_image ? `${API}${sp.image_url}` : "";
+  return `
+    <div class="shared-post">
+      <header class="post-header">
+        <img src="${avatarSrc(a)}" alt="" width="32" height="32" />
+        <div><strong>${escapeHtml(displayName(a))}</strong></div>
+      </header>
+      ${sp.message?.trim() ? `<p class="post-body">${escapeHtml(sp.message.trim())}</p>` : ""}
+      ${img ? `<img class="post-image" src="${img}" alt="" loading="lazy" />` : ""}
+    </div>
+  `;
+}
+
 function renderPostCard(post) {
   const card = document.createElement("article");
   card.className = "post-card card";
@@ -179,6 +228,7 @@ function renderPostCard(post) {
   const author = post.author || {};
   const name = displayName(author);
   const img = post.has_image ? `${API}${post.image_url}` : "";
+  const shared = post.shared_post ? `<p class="shared-label">↪ Delade ett inlägg</p>${renderSharedEmbed(post.shared_post)}` : "";
 
   card.innerHTML = `
     <header class="post-header">
@@ -190,18 +240,20 @@ function renderPostCard(post) {
         <time>${escapeHtml(post.created)}</time>
       </div>
     </header>
-    ${post.message.trim() ? `<p class="post-body">${escapeHtml(post.message.trim())}</p>` : ""}
+    ${shared}
+    ${post.message.trim() && post.message.trim() !== " " ? `<p class="post-body">${escapeHtml(post.message.trim())}</p>` : ""}
     ${img ? `<img class="post-image" src="${img}" alt="" loading="lazy" />` : ""}
     <div class="post-stats">
       <span class="likes-label">${post.likes_count || 0} gilla-markeringar</span>
-      · <span>${post.comments_count || 0} kommentarer</span>
+      · <span class="comments-count">${post.comments_count || 0} kommentarer</span>
     </div>
     <div class="post-actions">
-      <button type="button" class="btn-like ${post.liked_by_me ? "liked" : ""}" data-id="${post.id}">👍 Gilla</button>
+      <button type="button" class="btn-like ${post.liked_by_me ? "liked" : ""}">👍 Gilla</button>
       <button type="button" class="btn-comment-toggle">💬 Kommentera</button>
+      <button type="button" class="btn-share">↗ Dela</button>
     </div>
     <div class="post-comments">${(post.comments || []).map(renderComment).join("")}</div>
-    <form class="comment-form" data-id="${post.id}" hidden>
+    <form class="comment-form" hidden>
       <img src="${getSession() ? avatarSrc(getSession().user) : presetAvatar(1)}" alt="" width="32" height="32" />
       <input type="text" placeholder="Skriv en kommentar…" maxlength="300" />
       <button type="submit" class="btn btn-fb">Skicka</button>
@@ -210,8 +262,7 @@ function renderPostCard(post) {
 
   card.querySelector(".btn-like")?.addEventListener("click", () => toggleLike(post.id, card));
   card.querySelector(".btn-comment-toggle")?.addEventListener("click", () => {
-    const f = card.querySelector(".comment-form");
-    f.hidden = !f.hidden;
+    card.querySelector(".comment-form").hidden = !card.querySelector(".comment-form").hidden;
   });
   card.querySelector(".comment-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -219,8 +270,26 @@ function renderPostCard(post) {
     addComment(post.id, input.value.trim(), card);
     input.value = "";
   });
+  card.querySelector(".btn-share")?.addEventListener("click", () => sharePost(post.id));
 
   return card;
+}
+
+async function sharePost(postId) {
+  if (!getSession()) return toast("Logga in för att dela.", "error");
+  const msg = prompt("Lägg till en kommentar (valfritt):") ?? "";
+  if (msg === null) return;
+  try {
+    await api(`/api/v1/posts/${postId}/share`, {
+      method: "POST",
+      body: JSON.stringify({ message: msg }),
+    });
+    toast("Inlägg delat!");
+    loadFeed();
+    refreshBadges();
+  } catch (e) {
+    toast(e.message, "error");
+  }
 }
 
 function renderComment(c) {
@@ -284,7 +353,7 @@ async function addComment(postId, message, card) {
     const box = card.querySelector(".post-comments");
     box.insertAdjacentHTML("beforeend", renderComment(data.comment));
     const n = card.querySelectorAll(".comment").length;
-    card.querySelector(".post-stats span:last-child").textContent = `${n} kommentarer`;
+    card.querySelector(".comments-count").textContent = `${n} kommentarer`;
   } catch (e) {
     toast(e.message, "error");
   }
@@ -356,20 +425,6 @@ async function loadSidebar() {
   }
 }
 
-function contactRow(u, showAdd) {
-  const row = document.createElement("div");
-  row.className = "contact-row";
-  row.innerHTML = `
-    <a href="#/profile/${encodeURIComponent(u.username)}">
-      <img src="${avatarSrc(u)}" alt="" />
-    </a>
-    <a href="#/profile/${encodeURIComponent(u.username)}">${escapeHtml(displayName(u))}</a>
-    ${showAdd ? `<button type="button" class="btn btn-secondary btn-add" data-u="${escapeHtml(u.username)}">+ Vän</button>` : ""}
-  `;
-  row.querySelector(".btn-add")?.addEventListener("click", () => sendFriendRequest(u.username));
-  return row;
-}
-
 async function sendFriendRequest(username) {
   if (!getSession()) return toast("Logga in.", "error");
   try {
@@ -437,6 +492,13 @@ async function loadProfile(username) {
         actions.appendChild(b);
       } else if (data.friend_status === "friends") {
         actions.innerHTML = '<span class="muted">✓ Vänner</span>';
+        const chatBtn = document.createElement("button");
+        chatBtn.className = "btn btn-secondary";
+        chatBtn.textContent = "💬 Skicka meddelande";
+        chatBtn.onclick = () => {
+          location.hash = `#/messages/${encodeURIComponent(username)}`;
+        };
+        actions.appendChild(chatBtn);
       } else if (data.friend_status === "pending_outgoing") {
         actions.innerHTML = '<span class="muted">Förfrågan skickad</span>';
       }
@@ -627,8 +689,164 @@ $("#member-search")?.addEventListener("input", async (e) => {
   }
 });
 
+async function loadNotificationsPanel() {
+  const panel = $("#notif-panel");
+  if (!getSession()) return;
+  try {
+    const { data } = await api("/api/v1/notifications");
+    panel.innerHTML = data.items.length
+      ? data.items
+          .map(
+            (n) => `
+        <div class="notif-item ${n.read ? "" : "unread"}" data-id="${n.id}" data-type="${n.type}" data-actor="${escapeHtml(n.actor.username)}">
+          <img src="${n.actor.avatar_url}" alt="" />
+          <div>
+            <p>${escapeHtml(n.text)}</p>
+            ${n.preview ? `<p class="muted">${escapeHtml(n.preview)}</p>` : ""}
+            <time>${escapeHtml(n.created)}</time>
+          </div>
+        </div>`
+          )
+          .join("")
+      : '<p class="muted" style="padding:1rem">Inga notiser</p>';
+
+    panel.querySelectorAll(".notif-item").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const id = Number(el.dataset.id);
+        const type = el.dataset.type;
+        const actor = el.dataset.actor;
+        await api("/api/v1/notifications/read", {
+          method: "PATCH",
+          body: JSON.stringify({ id }),
+        });
+        panel.hidden = true;
+        refreshBadges();
+        if (type === "message") location.hash = `#/messages/${encodeURIComponent(actor)}`;
+        else if (type === "friend_request") location.hash = `#/profile/${encodeURIComponent(getSession().user.username)}`;
+        else location.hash = "#/";
+        loadFeed();
+      });
+    });
+  } catch (e) {
+    panel.innerHTML = `<p class="muted" style="padding:1rem">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+$("#btn-notifications")?.addEventListener("click", async (e) => {
+  e.stopPropagation();
+  const panel = $("#notif-panel");
+  if (panel.hidden) {
+    await loadNotificationsPanel();
+    panel.hidden = false;
+    await api("/api/v1/notifications/read", { method: "PATCH", body: "{}" });
+    refreshBadges();
+  } else panel.hidden = true;
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".notif-wrap")) $("#notif-panel").hidden = true;
+});
+
+async function loadMessagesView(openUser) {
+  const list = $("#conversations-list");
+  list.innerHTML = "<p class='muted'>Laddar…</p>";
+  if (!getSession()) {
+    location.hash = "#/";
+    return toast("Logga in för meddelanden.", "error");
+  }
+  try {
+    const { data } = await api("/api/v1/messages");
+    list.innerHTML = "";
+    if (!data.conversations?.length) {
+      list.innerHTML = "<p class='muted'>Inga konversationer. Bli vän med någon först!</p>";
+    } else {
+      data.conversations.forEach((c) => {
+        const a = document.createElement("a");
+        a.href = `#/messages/${encodeURIComponent(c.username)}`;
+        a.className = `conv-row${openUser === c.username ? " active" : ""}`;
+        a.innerHTML = `
+          <img src="${c.avatar_url}" alt="" />
+          <div class="conv-meta">
+            <strong>${escapeHtml(c.display_name)}</strong>
+            <span class="conv-preview">${escapeHtml(c.last_message || "")}</span>
+          </div>
+          ${c.unread ? `<span class="conv-unread">${c.unread}</span>` : ""}
+        `;
+        list.appendChild(a);
+      });
+    }
+    refreshBadges();
+    if (openUser) await openChat(openUser);
+    else {
+      $("#thread-header").textContent = "Välj en konversation";
+      $("#thread-messages").innerHTML = "";
+      $("#thread-form").hidden = true;
+    }
+  } catch (e) {
+    list.innerHTML = `<p class="muted">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function openChat(username) {
+  activeChatUser = username;
+  $("#thread-form").hidden = false;
+  $("#thread-header").textContent = `@${username}`;
+  const box = $("#thread-messages");
+  box.innerHTML = "<p class='muted'>Laddar…</p>";
+  try {
+    const { data } = await api(`/api/v1/messages/${encodeURIComponent(username)}`);
+    box.innerHTML = "";
+    data.forEach((m) => {
+      const el = document.createElement("div");
+      el.className = `bubble ${m.mine ? "mine" : "theirs"}`;
+      el.textContent = m.body;
+      box.appendChild(el);
+    });
+    box.scrollTop = box.scrollHeight;
+    refreshBadges();
+  } catch (e) {
+    box.innerHTML = `<p class="muted">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+$("#thread-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!activeChatUser) return;
+  const body = $("#thread-input").value.trim();
+  if (!body) return;
+  try {
+    await api(`/api/v1/messages/${encodeURIComponent(activeChatUser)}`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+    $("#thread-input").value = "";
+    await openChat(activeChatUser);
+    refreshBadges();
+  } catch (err) {
+    toast(err.message, "error");
+  }
+});
+
+function contactRow(u, showAdd) {
+  const row = document.createElement("div");
+  row.className = "contact-row";
+  row.innerHTML = `
+    <a href="#/profile/${encodeURIComponent(u.username)}">
+      <img src="${avatarSrc(u)}" alt="" />
+    </a>
+    <a href="#/profile/${encodeURIComponent(u.username)}">${escapeHtml(displayName(u))}</a>
+    ${showAdd ? `<button type="button" class="btn btn-secondary btn-add">+ Vän</button>` : `<button type="button" class="btn btn-secondary btn-chat">💬</button>`}
+  `;
+  row.querySelector(".btn-add")?.addEventListener("click", () => sendFriendRequest(u.username));
+  row.querySelector(".btn-chat")?.addEventListener("click", () => {
+    location.hash = `#/messages/${encodeURIComponent(u.username)}`;
+  });
+  return row;
+}
+
 window.addEventListener("hashchange", () => showView(parseRoute()));
 
 syncNav();
 checkHealth();
 showView(parseRoute());
+setInterval(() => { if (getSession()) refreshBadges(); }, 60000);

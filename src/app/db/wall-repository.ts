@@ -5,6 +5,7 @@ export interface WallPostRecord {
   username: string;
   message: string;
   image_data: string | null;
+  shared_post_id: number | null;
   created_at: Date | string;
 }
 
@@ -22,6 +23,7 @@ export default function makeWallRepository({
     findByUsernames,
     findByUsername,
     findById,
+    findByIds,
     getPostImage,
     create,
   });
@@ -29,7 +31,7 @@ export default function makeWallRepository({
   async function findAll(): Promise<WallPostRecord[]> {
     logger.info("[DB][WALL] findAll - START");
     const rows = await sql`
-      SELECT id, username, message, image_data, created_at
+      SELECT id, username, message, image_data, shared_post_id, created_at
       FROM wall_posts
       ORDER BY created_at DESC
       LIMIT 100
@@ -41,7 +43,7 @@ export default function makeWallRepository({
   async function findByUsernames(usernames: string[]): Promise<WallPostRecord[]> {
     if (usernames.length === 0) return [];
     const rows = await sql`
-      SELECT id, username, message, image_data, created_at
+      SELECT id, username, message, image_data, shared_post_id, created_at
       FROM wall_posts
       WHERE username = ANY(${usernames})
       ORDER BY created_at DESC
@@ -52,7 +54,7 @@ export default function makeWallRepository({
 
   async function findByUsername(username: string): Promise<WallPostRecord[]> {
     const rows = await sql`
-      SELECT id, username, message, image_data, created_at
+      SELECT id, username, message, image_data, shared_post_id, created_at
       FROM wall_posts
       WHERE username = ${username}
       ORDER BY created_at DESC
@@ -63,10 +65,19 @@ export default function makeWallRepository({
 
   async function findById(id: number): Promise<WallPostRecord | null> {
     const rows = await sql`
-      SELECT id, username, message, image_data, created_at
+      SELECT id, username, message, image_data, shared_post_id, created_at
       FROM wall_posts WHERE id = ${id} LIMIT 1
     `;
     return (rows[0] as WallPostRecord | undefined) ?? null;
+  }
+
+  async function findByIds(ids: number[]): Promise<WallPostRecord[]> {
+    if (ids.length === 0) return [];
+    const rows = await sql`
+      SELECT id, username, message, image_data, shared_post_id, created_at
+      FROM wall_posts WHERE id = ANY(${ids})
+    `;
+    return rows as WallPostRecord[];
   }
 
   async function getPostImage(id: number): Promise<string | null> {
@@ -82,16 +93,18 @@ export default function makeWallRepository({
     username,
     message,
     image_data,
+    shared_post_id,
   }: {
     username: string;
     message: string;
     image_data?: string | null;
+    shared_post_id?: number | null;
   }): Promise<WallPostRecord> {
     logger.info(`[DB][WALL] create @${username} - START`);
     const rows = await sql`
-      INSERT INTO wall_posts (username, message, image_data)
-      VALUES (${username}, ${message}, ${image_data ?? null})
-      RETURNING id, username, message, image_data, created_at
+      INSERT INTO wall_posts (username, message, image_data, shared_post_id)
+      VALUES (${username}, ${message}, ${image_data ?? null}, ${shared_post_id ?? null})
+      RETURNING id, username, message, image_data, shared_post_id, created_at
     `;
     logger.info(`[DB][WALL] create @${username} - DONE`);
     return rows[0] as WallPostRecord;

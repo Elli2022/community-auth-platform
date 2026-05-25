@@ -14,6 +14,9 @@ import {
   updateProfile,
   deleteProfile,
   social,
+  notifications,
+  messages,
+  sharePost,
 } from "../use-cases";
 import {
   requireAuth,
@@ -248,6 +251,74 @@ const friendAcceptEP = async (req: AuthedRequest, res: Response) => {
   }
 };
 
+const sharePostEP = async (req: AuthedRequest, res: Response) => {
+  try {
+    const results = await sharePost({
+      postId: routePostId(req),
+      authUsername: req.authUsername!,
+      params: req.body,
+    });
+    res.status(201).json({ err: 0, data: results });
+  } catch (err) {
+    res.status(400).json({ err: 1, message: errorMessage(err) });
+  }
+};
+
+const getNotificationsEP = async (req: AuthedRequest, res: Response) => {
+  try {
+    const results = await notifications.list(req.authUsername!);
+    res.json({ err: 0, data: results });
+  } catch (err) {
+    res.status(400).json({ err: 1, message: errorMessage(err) });
+  }
+};
+
+const markNotificationsEP = async (req: AuthedRequest, res: Response) => {
+  try {
+    const id = req.body?.id != null ? Number(req.body.id) : undefined;
+    const results = await notifications.markRead(req.authUsername!, id);
+    res.json({ err: 0, data: results });
+  } catch (err) {
+    res.status(400).json({ err: 1, message: errorMessage(err) });
+  }
+};
+
+const getConversationsEP = async (req: AuthedRequest, res: Response) => {
+  try {
+    const results = await messages.listConversations(req.authUsername!);
+    res.json({ err: 0, data: results });
+  } catch (err) {
+    res.status(400).json({ err: 1, message: errorMessage(err) });
+  }
+};
+
+const getMessagesEP = async (req: AuthedRequest, res: Response) => {
+  try {
+    const results = await messages.getThread(
+      req.authUsername!,
+      routeUsername(req)
+    );
+    res.json({ err: 0, data: results });
+  } catch (err) {
+    res.status(400).json({ err: 1, message: errorMessage(err) });
+  }
+};
+
+const postMessageEP = async (req: AuthedRequest, res: Response) => {
+  try {
+    const body =
+      typeof req.body.body === "string" ? req.body.body : "";
+    const results = await messages.send(
+      req.authUsername!,
+      routeUsername(req),
+      body
+    );
+    res.status(201).json({ err: 0, data: results });
+  } catch (err) {
+    res.status(400).json({ err: 1, message: errorMessage(err) });
+  }
+};
+
 const routes = [
   { path: `${baseUrl}/auth/login`, method: "post" as const, component: loginEP },
   { path: `${baseUrl}/feed`, method: "get" as const, component: [optionalAuth, getFeedEP] },
@@ -296,6 +367,36 @@ const routes = [
     path: `${baseUrl}/posts/:id/comments`,
     method: "post" as const,
     component: [requireAuth, commentPostEP],
+  },
+  {
+    path: `${baseUrl}/posts/:id/share`,
+    method: "post" as const,
+    component: [requireAuth, sharePostEP],
+  },
+  {
+    path: `${baseUrl}/notifications`,
+    method: "get" as const,
+    component: [requireAuth, getNotificationsEP],
+  },
+  {
+    path: `${baseUrl}/notifications/read`,
+    method: "patch" as const,
+    component: [requireAuth, markNotificationsEP],
+  },
+  {
+    path: `${baseUrl}/messages`,
+    method: "get" as const,
+    component: [requireAuth, getConversationsEP],
+  },
+  {
+    path: `${baseUrl}/messages/:username`,
+    method: "get" as const,
+    component: [requireAuth, getMessagesEP],
+  },
+  {
+    path: `${baseUrl}/messages/:username`,
+    method: "post" as const,
+    component: [requireAuth, postMessageEP],
   },
   { path: `${baseUrl}/wall`, method: "get" as const, component: [optionalAuth, getWallEP] },
   { path: `${baseUrl}/wall`, method: "post" as const, component: [requireAuth, postWallEP] },

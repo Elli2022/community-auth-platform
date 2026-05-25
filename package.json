@@ -1,6 +1,6 @@
 {
   "name": "community-auth-forum",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Community Auth Forum – profiler, avatarer och meddelandevägg (Node.js + PostgreSQL)",
   "type": "commonjs",
   "main": "build/app/index.js",

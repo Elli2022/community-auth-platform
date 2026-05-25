@@ -1,13 +1,15 @@
 import sanitizeHtml from "sanitize-html";
 import { parseDataUrl } from "../../libs/image";
-import { enrichPosts } from "../../db/enrich-posts";
+import { enrichPostsWithContext } from "../../db/enrich-posts";
 import type makeUsersRepository from "../../db/users-repository";
 import type makeWallRepository from "../../db/wall-repository";
 import type makeSocialRepository from "../../db/social-repository";
+import type makeNotificationsRepository from "../../db/notifications-repository";
 
 type UsersRepository = ReturnType<typeof makeUsersRepository>;
 type WallRepository = ReturnType<typeof makeWallRepository>;
 type SocialRepository = ReturnType<typeof makeSocialRepository>;
+type NotificationsRepository = ReturnType<typeof makeNotificationsRepository>;
 
 const sanitize = (text: string) =>
   sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} });
@@ -31,12 +33,10 @@ export function createWallGet({
     get: async (viewerUsername?: string) => {
       logger.info("[USE-CASE][WALL][GET] - START");
       const posts = await wallRepository.findAll();
-      const authors = [...new Set(posts.map((p) => p.username))];
-      const users = await usersRepository.findByUsernames(authors);
-      const usersByName = new Map(users.map((u) => [u.username, u]));
-      const result = await enrichPosts({
+      const result = await enrichPostsWithContext({
         posts,
-        usersByName,
+        wallRepository,
+        usersRepository,
         socialRepository,
         viewerUsername,
         transformDate: dataManipulation.transformDate,
@@ -104,10 +104,76 @@ export function createWallPost({
       });
       logger.info(`[USE-CASE][WALL][POST] @${authUsername} - DONE`);
 
-      const usersByName = new Map([[user.username, user]]);
-      const enriched = await enrichPosts({
+      const enriched = await enrichPostsWithContext({
         posts: [row],
-        usersByName,
+        wallRepository,
+        usersRepository,
+        socialRepository,
+        viewerUsername: authUsername,
+        transformDate: dataManipulation.transformDate,
+      });
+      return enriched[0];
+    },
+  });
+}
+
+export function createSharePost({
+  wallRepository,
+  usersRepository,
+  socialRepository,
+  notificationsRepository,
+  makeDataManipulation,
+}: {
+  wallRepository: WallRepository;
+  usersRepository: UsersRepository;
+  socialRepository: SocialRepository;
+  notificationsRepository: NotificationsRepository;
+  makeDataManipulation: () => { transformDate: (ts: number) => string };
+}) {
+  const dataManipulation = makeDataManipulation();
+
+  return Object.freeze({
+    share: async ({
+      postId,
+      authUsername,
+      params,
+    }: {
+      postId: number;
+      authUsername: string;
+      params: Record<string, unknown>;
+    }) => {
+      const original = await wallRepository.findById(postId);
+      if (!original) throw new Error("Inlägget finns inte");
+
+      const comment =
+        typeof params.message === "string"
+          ? sanitize(params.message.trim()).slice(0, 300)
+          : "";
+
+      const row = await wallRepository.create({
+        username: authUsername,
+        message: comment || " ",
+        shared_post_id: postId,
+      });
+
+      await notificationsRepository.create({
+        recipient: original.username,
+        actor: authUsername,
+        type: "share",
+        ref_id: row.id,
+        preview: comment || "delade ditt inlägg",
+      });
+
+      const users = await usersRepository.findByUsernames([
+        authUsername,
+        original.username,
+      ]);
+      const usersByName = new Map(users.map((u) => [u.username, u]));
+
+      const enriched = await enrichPostsWithContext({
+        posts: [row],
+        wallRepository,
+        usersRepository,
         socialRepository,
         viewerUsername: authUsername,
         transformDate: dataManipulation.transformDate,

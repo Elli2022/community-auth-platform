@@ -1,4 +1,4 @@
-import { enrichPosts } from "../../db/enrich-posts";
+import { enrichPostsWithContext } from "../../db/enrich-posts";
 import type { WallPostRecord } from "../../db/wall-repository";
 import type makeSocialRepository from "../../db/social-repository";
 import type makeUsersRepository from "../../db/users-repository";
@@ -35,15 +35,10 @@ export function createFeedGet({
         posts = await wallRepository.findAll();
       }
 
-      const authors: string[] = [
-        ...new Set(posts.map((p) => p.username)),
-      ];
-      const users = await usersRepository.findByUsernames(authors);
-      const usersByName = new Map(users.map((u) => [u.username, u]));
-
-      return enrichPosts({
+      return enrichPostsWithContext({
         posts,
-        usersByName,
+        wallRepository,
+        usersRepository,
         socialRepository,
         viewerUsername,
         transformDate: dataManipulation.transformDate,

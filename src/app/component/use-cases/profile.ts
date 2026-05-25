@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import sanitizeHtml from "sanitize-html";
 import { parseDataUrl } from "../../libs/image";
 import { mapUserToResponse } from "../../db/map-user";
-import { enrichPosts } from "../../db/enrich-posts";
+import { enrichPostsWithContext } from "../../db/enrich-posts";
 import type makeUsersRepository from "../../db/users-repository";
 import type makeWallRepository from "../../db/wall-repository";
 import type makeSocialRepository from "../../db/social-repository";
@@ -33,10 +33,10 @@ export function createProfileGet({
       if (!user) throw new Error("user not found");
 
       const posts = await wallRepository.findByUsername(username);
-      const usersByName = new Map([[user.username, user]]);
-      const enrichedPosts = await enrichPosts({
+      const enrichedPosts = await enrichPostsWithContext({
         posts,
-        usersByName,
+        wallRepository,
+        usersRepository,
         socialRepository,
         viewerUsername,
         transformDate: dataManipulation.transformDate,

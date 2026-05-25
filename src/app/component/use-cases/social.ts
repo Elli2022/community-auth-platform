@@ -2,8 +2,9 @@ import sanitizeHtml from "sanitize-html";
 import type makeSocialRepository from "../../db/social-repository";
 import type makeWallRepository from "../../db/wall-repository";
 import type makeUsersRepository from "../../db/users-repository";
+import type makeNotificationsRepository from "../../db/notifications-repository";
 import { avatarUrlFor } from "../../db/map-user";
-import { enrichPosts } from "../../db/enrich-posts";
+import { enrichPostsWithContext } from "../../db/enrich-posts";
 import makeDataManipulation from "../entities/data-manipulation";
 
 const sanitize = (text: string) =>
@@ -12,15 +13,18 @@ const sanitize = (text: string) =>
 type SocialRepository = ReturnType<typeof makeSocialRepository>;
 type WallRepository = ReturnType<typeof makeWallRepository>;
 type UsersRepository = ReturnType<typeof makeUsersRepository>;
+type NotificationsRepository = ReturnType<typeof makeNotificationsRepository>;
 
 export function createSocialActions({
   socialRepository,
   wallRepository,
   usersRepository,
+  notificationsRepository,
 }: {
   socialRepository: SocialRepository;
   wallRepository: WallRepository;
   usersRepository: UsersRepository;
+  notificationsRepository: NotificationsRepository;
 }) {
   const dataManipulation = makeDataManipulation();
 
@@ -29,11 +33,17 @@ export function createSocialActions({
       const post = await wallRepository.findById(postId);
       if (!post) throw new Error("Inlägget finns inte");
       const liked = await socialRepository.toggleLike(postId, username);
+      if (liked) {
+        await notificationsRepository.create({
+          recipient: post.username,
+          actor: username,
+          type: "like",
+          ref_id: postId,
+          preview: "gillade ditt inlägg",
+        });
+      }
       const counts = await socialRepository.getLikeCounts([postId]);
-      return {
-        liked,
-        likes_count: counts.get(postId) ?? 0,
-      };
+      return { liked, likes_count: counts.get(postId) ?? 0 };
     },
 
     addComment: async ({
@@ -51,17 +61,22 @@ export function createSocialActions({
       if (!trimmed) throw new Error("Kommentar krävs");
       if (trimmed.length > 300) throw new Error("Max 300 tecken");
 
-      const row = await socialRepository.addComment({
-        postId,
-        username,
-        message: trimmed,
+      await socialRepository.addComment({ postId, username, message: trimmed });
+
+      await notificationsRepository.create({
+        recipient: post.username,
+        actor: username,
+        type: "comment",
+        ref_id: postId,
+        preview: trimmed.slice(0, 120),
       });
 
-      const users = await usersRepository.findByUsernames([username]);
+      const users = await usersRepository.findByUsernames([username, post.username]);
       const usersByName = new Map(users.map((u) => [u.username, u]));
-      const enriched = await enrichPosts({
+      const enriched = await enrichPostsWithContext({
         posts: [post],
-        usersByName,
+        wallRepository,
+        usersRepository,
         socialRepository,
         viewerUsername: username,
         transformDate: dataManipulation.transformDate,
@@ -103,11 +118,23 @@ export function createSocialActions({
       const target = await usersRepository.findByUsername(to);
       if (!target) throw new Error("Användaren finns inte");
       await socialRepository.sendFriendRequest(from, to);
+      await notificationsRepository.create({
+        recipient: to,
+        actor: from,
+        type: "friend_request",
+        preview: "vill bli vän",
+      });
       return { ok: true, to };
     },
 
     acceptFriendRequest: async (accepter: string, from: string) => {
       await socialRepository.acceptFriendRequest(accepter, from);
+      await notificationsRepository.create({
+        recipient: from,
+        actor: accepter,
+        type: "friend_accepted",
+        preview: "accepterade din vänförfrågan",
+      });
       return { ok: true, from };
     },
 
