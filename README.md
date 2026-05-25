@@ -1,5 +1,7 @@
 # Flödet
 
+![CI](https://github.com/Elli2022/community-auth-forum/actions/workflows/ci.yml/badge.svg)
+
 **Fullstack socialt nätverk** — profiler, nyhetsflöde, vänner, direktmeddelanden (DM), notiser och kontoåterställning. Utvecklat som vidareutveckling av utbildningsprojektet *nodejs-3rd-challenge-api*; hela git-historiken finns kvar.
 
 | | |
@@ -7,6 +9,7 @@
 | **Live** | [community-auth-forum.netlify.app](https://community-auth-forum.netlify.app) |
 | **API-spec** | [docs/openapi.yaml](docs/openapi.yaml) · [YAML på prod](https://community-auth-forum.netlify.app/openapi.yaml) |
 | **Stack** | Node.js 20+ · TypeScript · Express · PostgreSQL (Neon) · Netlify Functions |
+| **CI** | GitHub Actions: `npm ci` → audit → build → tests (Postgres service) |
 
 ---
 

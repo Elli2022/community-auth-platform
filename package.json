@@ -33,6 +33,10 @@
     "serverless-http": "^3.2.0",
     "winston": "^3.17.0"
   },
+  "overrides": {
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.0.5"
+  },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/chai": "^5.2.2",
