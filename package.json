@@ -8,7 +8,7 @@
     "node": ">=20.13.0"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node build/app/index.js",
     "dev": "tsx watch src/app/index.ts",
     "test": "mocha --exit -r tsx/cjs src/tests/**/*.spec.ts",
