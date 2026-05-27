@@ -289,7 +289,9 @@ function renderThreadMessages(messages) {
   const lastMine = mine[mine.length - 1];
   if (lastMine) {
     status.hidden = false;
-    status.textContent = lastMine.read ? "Sett" : "Skickat";
+    status.textContent = lastMine.read
+      ? `Sett${lastMine.read_at ? ` ${lastMine.read_at}` : ""}`
+      : "Skickat";
   } else {
     status.hidden = true;
     status.textContent = "";

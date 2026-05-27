@@ -18,6 +18,16 @@ function formatDate(value: Date | string) {
   return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString("sv-SE");
 }
 
+function formatTime(value: Date | string) {
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime())
+    ? String(value)
+    : d.toLocaleTimeString("sv-SE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+}
+
 export function createMessagesUseCase({
   messagesRepository,
   notificationsRepository,
@@ -37,6 +47,7 @@ export function createMessagesUseCase({
       body: m.body,
       mine: m.sender === viewer,
       read: Boolean(m.read_at),
+      read_at: m.read_at ? formatTime(m.read_at) : null,
       created: formatDate(m.created_at),
     }));
   }
@@ -113,6 +124,7 @@ export function createMessagesUseCase({
         body: row.body,
         mine: true,
         read: false,
+        read_at: null,
         created: formatDate(row.created_at),
       };
     },
