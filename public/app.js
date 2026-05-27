@@ -725,8 +725,8 @@ function validateUsername(value) {
     return "Användarnamn kan inte vara en e-postadress. Använd fältet ”E-post” nedan.";
   }
   if (v.length <= 4 || v.length >= 25) return "Användarnamn måste vara 5–24 tecken.";
-  if (!/^[a-z][a-z0-9]+$/.test(v)) {
-    return "Endast små bokstäver (a–z) och siffror, måste börja med en bokstav.";
+  if (!/^[a-z][a-z0-9]+$/i.test(v)) {
+    return "Endast bokstäver (A–Z/a–z) och siffror, och måste börja med en bokstav.";
   }
   return "";
 }

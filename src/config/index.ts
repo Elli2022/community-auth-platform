@@ -12,7 +12,7 @@ const ERROR_MSG = {
     INVALID_USERNAME_LENGTH:
       "Användarnamn måste vara 5–24 tecken.",
     INVALID_USERNAME_CHARS:
-      "Användarnamn får bara innehålla små bokstäver (a–z) och siffror, och måste börja med en bokstav.",
+      "Användarnamn får bara innehålla bokstäver (A–Z/a–z) och siffror, och måste börja med en bokstav.",
     INVALID_USERNAME: "Ogiltigt användarnamn.",
     MISSING_PARAMETER: "Saknad uppgift: ",
     INVALID_CREDENTIALS: "Invalid credentials",

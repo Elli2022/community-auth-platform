@@ -58,11 +58,12 @@ export default function makeInputObjectFactory({
     if (value.length <= 4 || value.length >= 25) {
       throw new Error(errorMsgs.INVALID_USERNAME_LENGTH);
     }
-    if (!/^[a-z][a-z0-9]+$/.test(value)) {
+    if (!/^[a-z][a-z0-9]+$/i.test(value)) {
       throw new Error(errorMsgs.INVALID_USERNAME_CHARS);
     }
 
-    return sanitize(value);
+    // Username is case-insensitive; store canonical lowercase value.
+    return sanitize(value.toLowerCase());
   }
 
   function checkPassword({

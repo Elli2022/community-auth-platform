@@ -92,7 +92,7 @@ flowchart TB
 | **Lösenord** | bcrypt (cost factor 10), lagras som `password_hash` |
 | **Session** | JWT (`jsonwebtoken`), Bearer-header, 7 dagars TTL; `JWT_SECRET` i miljö |
 | **Input** | `sanitize-html` på textfält (inga HTML-taggar i bio, inlägg, kommentarer) |
-| **Användarnamn** | Regex `^[a-z][a-z0-9]{4,23}$` — separat från e-post |
+| **Användarnamn** | Regex `^[a-z][a-z0-9]{4,23}$` (case-insensitive inmatning, lagras som lowercase) — separat från e-post |
 | **Bilder** | data-URL validering (JPEG/PNG/WebP, max ~400 KB) |
 | **HTTP** | `helmet`, CORS, JSON body limit 3 MB |
 | **Auktorisering** | `requireSelf` på profil-ändring/radering; DM endast mellan vänner |

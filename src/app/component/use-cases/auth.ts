@@ -24,8 +24,9 @@ export function createAuthLogin({
       params: Record<string, unknown>;
       errorMsgs: Record<string, string>;
     }) => {
-      const username =
+      const usernameInput =
         typeof params.username === "string" ? params.username.trim() : "";
+      const username = usernameInput.toLowerCase();
       const password =
         typeof params.password === "string" ? params.password : "";
 
@@ -33,7 +34,7 @@ export function createAuthLogin({
         throw new Error(errorMsgs.MISSING_PARAMETER + "username/password");
       }
 
-      logger.info(`[AUTH] login attempt @${username}`);
+      logger.info(`[AUTH] login attempt @${usernameInput}`);
       const user = await usersRepository.findByUsername(username);
       if (!user) {
         throw new Error(errorMsgs.INVALID_CREDENTIALS);
@@ -44,7 +45,7 @@ export function createAuthLogin({
         throw new Error(errorMsgs.INVALID_CREDENTIALS);
       }
 
-      const token = signAuthToken(username);
+      const token = signAuthToken(user.username);
       const profile = mapUserToResponse(user, dataManipulation.transformDate);
 
       return { token, user: profile };
