@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flodet Feed Screenshot Placeholder</title>
+  <desc id="desc">Placeholder image for the Flodet feed screenshot.</desc>
+  <rect width="1280" height="720" fill="#f2f4f7"/>
+  <rect x="0" y="0" width="1280" height="88" fill="#1877f2"/>
+  <rect x="80" y="130" width="240" height="520" rx="16" fill="#ffffff"/>
+  <rect x="360" y="130" width="560" height="520" rx="16" fill="#ffffff"/>
+  <rect x="960" y="130" width="240" height="520" rx="16" fill="#ffffff"/>
+  <text x="640" y="340" font-family="Arial, sans-serif" font-size="36" fill="#1f2937" text-anchor="middle">Flödet - Feed</text>
+  <text x="640" y="390" font-family="Arial, sans-serif" font-size="22" fill="#6b7280" text-anchor="middle">Replace with real app screenshot</text>
+</svg>

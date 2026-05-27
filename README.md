@@ -13,6 +13,16 @@
 
 ---
 
+## Screenshots
+
+![Flödet feed](public/screenshots/feed.svg)
+![Flödet profile](public/screenshots/profile.svg)
+![Flödet messages](public/screenshots/messages.svg)
+
+> Tips: ersätt filerna i `public/screenshots/` med riktiga appbilder (samma filnamn) så uppdateras README automatiskt.
+
+---
+
 ## Arkitektur
 
 Produktion: statisk SPA i Netlify CDN, API via serverless proxy till Express. Databas: Neon PostgreSQL (serverless driver).
@@ -201,6 +211,21 @@ netlify deploy --prod --build
 | `NODE_PORT` | Nej | Default `3000` |
 | `RESEND_API_KEY` | Nej | E-post (återställning); utan → länk visas i UI |
 | `EMAIL_FROM` | Nej | Avsändare vid Resend |
+
+---
+
+## Resend setup (Netlify)
+
+1. Gå till Netlify-site `community-auth-forum` → **Site configuration** → **Environment variables**.
+2. Lägg till:
+   - `RESEND_API_KEY` = din Resend API key
+   - `EMAIL_FROM` = verifierad avsändare, t.ex. `Flödet <noreply@din-domän.se>`
+   - `PUBLIC_SITE_URL` = `https://community-auth-forum.netlify.app`
+3. Deploya om (`Trigger deploy`), testa sedan:
+   - `#/forgot-password`
+   - `#/forgot-username`
+
+I produktion exponeras inte dev-fallback (`dev_reset_url` / `dev_username`) om e-postutskick misslyckas.
 
 ---
 

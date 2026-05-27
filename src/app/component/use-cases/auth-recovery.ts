@@ -8,6 +8,7 @@ type UsersRepository = ReturnType<typeof makeUsersRepository>;
 
 const GENERIC_EMAIL_MSG =
   "Om e-postadressen är kopplad till ett konto skickar vi instruktioner inom några minuter.";
+const ENABLE_DEV_RECOVERY_FALLBACK = process.env.NODE_ENV !== "production";
 
 export function createAuthRecovery({
   usersRepository,
@@ -48,7 +49,7 @@ export function createAuthRecovery({
         `,
       });
 
-      if (!sent) {
+      if (!sent && ENABLE_DEV_RECOVERY_FALLBACK) {
         result.dev_reset_url = resetUrl;
         result.message +=
           " E-postutskick är inte aktiverat — använd återställningslänken nedan.";
@@ -88,7 +89,7 @@ export function createAuthRecovery({
         `,
       });
 
-      if (!sent) {
+      if (!sent && ENABLE_DEV_RECOVERY_FALLBACK) {
         result.dev_username = user.username;
         result.message +=
           " E-postutskick är inte aktiverat — ditt användarnamn visas nedan.";

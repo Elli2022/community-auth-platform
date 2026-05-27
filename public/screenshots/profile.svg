@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flodet Profile Screenshot Placeholder</title>
+  <desc id="desc">Placeholder image for the Flodet profile screenshot.</desc>
+  <rect width="1280" height="720" fill="#eef2ff"/>
+  <rect x="80" y="80" width="1120" height="180" rx="20" fill="#2563eb"/>
+  <circle cx="190" cy="260" r="64" fill="#ffffff"/>
+  <rect x="80" y="300" width="360" height="340" rx="16" fill="#ffffff"/>
+  <rect x="470" y="300" width="730" height="340" rx="16" fill="#ffffff"/>
+  <text x="760" y="360" font-family="Arial, sans-serif" font-size="36" fill="#111827" text-anchor="middle">Flödet - Profile</text>
+  <text x="760" y="410" font-family="Arial, sans-serif" font-size="22" fill="#6b7280" text-anchor="middle">Replace with real app screenshot</text>
+</svg>
