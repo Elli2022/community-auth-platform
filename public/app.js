@@ -289,13 +289,28 @@ function renderThreadMessages(messages) {
   const lastMine = mine[mine.length - 1];
   if (lastMine) {
     status.hidden = false;
-    status.textContent = lastMine.read
-      ? `Sett${lastMine.read_at ? ` ${lastMine.read_at}` : ""}`
-      : "Skickat";
+    if (lastMine.read) {
+      status.textContent = `Sett${lastMine.read_at ? ` ${lastMine.read_at}` : ""}`;
+    } else if (lastMine.delivered) {
+      status.textContent = `Levererat${lastMine.delivered_at ? ` ${lastMine.delivered_at}` : ""}`;
+    } else {
+      status.textContent = "Skickat";
+    }
   } else {
     status.hidden = true;
     status.textContent = "";
   }
+}
+
+function insertEmojiAtCursor(input, emoji) {
+  if (!input) return;
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  input.value = `${input.value.slice(0, start)}${emoji}${input.value.slice(end)}`;
+  const nextPos = start + emoji.length;
+  input.selectionStart = nextPos;
+  input.selectionEnd = nextPos;
+  input.focus();
 }
 
 function startThreadRealtime(username) {
@@ -842,6 +857,12 @@ $("#composer-clear-img")?.addEventListener("click", () => {
   composerImageData = null;
   $("#composer-preview").hidden = true;
   $("#composer-image").value = "";
+});
+
+$("#composer-emojis")?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".emoji-btn");
+  if (!btn) return;
+  insertEmojiAtCursor($("#composer-text"), btn.dataset.emoji || "");
 });
 
 function validateUsername(value) {

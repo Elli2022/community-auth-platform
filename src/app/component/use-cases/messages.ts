@@ -46,6 +46,8 @@ export function createMessagesUseCase({
       recipient: m.recipient,
       body: m.body,
       mine: m.sender === viewer,
+      delivered: Boolean(m.delivered_at),
+      delivered_at: m.delivered_at ? formatTime(m.delivered_at) : null,
       read: Boolean(m.read_at),
       read_at: m.read_at ? formatTime(m.read_at) : null,
       created: formatDate(m.created_at),
@@ -54,6 +56,7 @@ export function createMessagesUseCase({
 
   return Object.freeze({
     listConversations: async (username: string) => {
+      await messagesRepository.markAllDelivered(username);
       const rows = await messagesRepository.listConversations(username);
       const others = rows.map((r) => r.other_user);
       const users = await usersRepository.findByUsernames(others);
@@ -80,6 +83,7 @@ export function createMessagesUseCase({
       if (!friends.includes(other)) {
         throw new Error("Du kan bara chatta med accepterade vänner");
       }
+      await messagesRepository.markThreadDelivered(viewer, other);
       await messagesRepository.markThreadRead(viewer, other);
       const rows = await messagesRepository.getThread(viewer, other);
       return mapThreadRows(rows, viewer);
@@ -90,6 +94,7 @@ export function createMessagesUseCase({
       if (!friends.includes(other)) {
         throw new Error("Du kan bara chatta med accepterade vänner");
       }
+      await messagesRepository.markThreadDelivered(viewer, other);
       const rows = await messagesRepository.getThread(viewer, other);
       return mapThreadRows(rows, viewer);
     },
@@ -123,6 +128,8 @@ export function createMessagesUseCase({
         recipient: row.recipient,
         body: row.body,
         mine: true,
+        delivered: false,
+        delivered_at: null,
         read: false,
         read_at: null,
         created: formatDate(row.created_at),

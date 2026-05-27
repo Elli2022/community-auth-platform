@@ -88,9 +88,12 @@ CREATE TABLE IF NOT EXISTS direct_messages (
   sender VARCHAR(24) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
   recipient VARCHAR(24) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
   body TEXT NOT NULL,
+  delivered_at TIMESTAMPTZ,
   read_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_messages_thread ON direct_messages (sender, recipient, created_at ASC);
 

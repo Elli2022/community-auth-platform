@@ -5,6 +5,7 @@ export interface MessageRecord {
   sender: string;
   recipient: string;
   body: string;
+  delivered_at: Date | string | null;
   read_at: Date | string | null;
   created_at: Date | string;
 }
@@ -19,6 +20,8 @@ export default function makeMessagesRepository({ sql }: { sql: SqlClient }) {
     getThread,
     listConversations,
     countUnread,
+    markAllDelivered,
+    markThreadDelivered,
     markThreadRead,
   });
 
@@ -34,7 +37,7 @@ export default function makeMessagesRepository({ sql }: { sql: SqlClient }) {
     const rows = asRows<MessageRecord>(await sql`
       INSERT INTO direct_messages (sender, recipient, body)
       VALUES (${sender}, ${recipient}, ${body})
-      RETURNING id, sender, recipient, body, read_at, created_at
+      RETURNING id, sender, recipient, body, delivered_at, read_at, created_at
     `);
     return rows[0];
   }
@@ -45,7 +48,7 @@ export default function makeMessagesRepository({ sql }: { sql: SqlClient }) {
     limit = 80
   ): Promise<MessageRecord[]> {
     const rows = asRows<MessageRecord>(await sql`
-      SELECT id, sender, recipient, body, read_at, created_at
+      SELECT id, sender, recipient, body, delivered_at, read_at, created_at
       FROM direct_messages
       WHERE (sender = ${userA} AND recipient = ${userB})
          OR (sender = ${userB} AND recipient = ${userA})
@@ -107,6 +110,24 @@ export default function makeMessagesRepository({ sql }: { sql: SqlClient }) {
     await sql`
       UPDATE direct_messages SET read_at = NOW()
       WHERE recipient = ${viewer} AND sender = ${other} AND read_at IS NULL
+    `;
+  }
+
+  async function markAllDelivered(username: string): Promise<void> {
+    await sql`
+      UPDATE direct_messages
+      SET delivered_at = NOW()
+      WHERE recipient = ${username} AND delivered_at IS NULL
+    `;
+  }
+
+  async function markThreadDelivered(viewer: string, other: string): Promise<void> {
+    await sql`
+      UPDATE direct_messages
+      SET delivered_at = NOW()
+      WHERE recipient = ${viewer}
+        AND sender = ${other}
+        AND delivered_at IS NULL
     `;
   }
 }

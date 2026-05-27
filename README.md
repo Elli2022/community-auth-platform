@@ -80,8 +80,10 @@ flowchart TB
 - **Flöde** — personligt flöde (vänner + du) eller global vägg
 - **Socialt** — gilla, kommentera, dela inlägg; vänförfrågningar
 - **DM** — direktmeddelanden mellan accepterade vänner (konversationer + olästa)
+- **DM-status** — skickat, levererat, sett (med tid)
 - **Notiser** — likes, kommentarer, delningar, vänner, nya meddelanden
 - **Realtime** — SSE för olästa badges + live DM-tråd (med polling fallback för badges)
+- **Statusuppdateringar** — stöd för emoji i composer
 - **Säkerhet** — endast ägare kan PATCH/DELETE egen profil
 
 ---
