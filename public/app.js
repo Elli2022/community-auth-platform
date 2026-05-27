@@ -1,6 +1,8 @@
 const API = "";
 const SESSION_KEY = "caf_session";
 const AVATARS = 5;
+const RECENT_EMOJIS_KEY = "caf_recent_emojis";
+const RECENT_EMOJIS_LIMIT = 8;
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -353,6 +355,27 @@ function insertEmojiAtCursor(input, emoji) {
   input.selectionStart = nextPos;
   input.selectionEnd = nextPos;
   input.focus();
+  rememberRecentEmoji(emoji);
+}
+
+function getRecentEmojis() {
+  try {
+    const raw = localStorage.getItem(RECENT_EMOJIS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberRecentEmoji(emoji) {
+  if (!emoji) return;
+  const recent = getRecentEmojis().filter((e) => e !== emoji);
+  recent.unshift(emoji);
+  localStorage.setItem(
+    RECENT_EMOJIS_KEY,
+    JSON.stringify(recent.slice(0, RECENT_EMOJIS_LIMIT))
+  );
 }
 
 function closeEmojiPicker() {
@@ -367,19 +390,41 @@ function renderEmojiGrid(query = "") {
   const grid = $("#emoji-grid");
   if (!grid) return;
   const q = query.trim().toLowerCase();
-  const list = q
-    ? EMOJIS.filter((e) => e.name.includes(q))
-    : EMOJIS;
+  const list = q ? EMOJIS.filter((e) => e.name.includes(q)) : EMOJIS;
+  const recent = q
+    ? []
+    : getRecentEmojis()
+        .map((char) => EMOJIS.find((e) => e.char === char))
+        .filter(Boolean);
   if (!list.length) {
     grid.innerHTML = '<p class="emoji-empty">Inga emojis hittades.</p>';
     return;
   }
-  grid.innerHTML = list
-    .map(
-      (e) =>
-        `<button type="button" class="emoji-btn" data-emoji="${e.char}" title="${escapeHtml(e.name)}">${e.char}</button>`
-    )
-    .join("");
+  const recentBlock = recent.length
+    ? `
+      <div class="emoji-section-title">Senast använda</div>
+      <div class="emoji-section-row">
+        ${recent
+          .map(
+            (e) =>
+              `<button type="button" class="emoji-btn" data-emoji="${e.char}" title="${escapeHtml(e.name)}">${e.char}</button>`
+          )
+          .join("")}
+      </div>
+    `
+    : "";
+  const allBlock = `
+    <div class="emoji-section-title">${q ? "Sökresultat" : "Alla emojis"}</div>
+    <div class="emoji-section-row">
+      ${list
+        .map(
+          (e) =>
+            `<button type="button" class="emoji-btn" data-emoji="${e.char}" title="${escapeHtml(e.name)}">${e.char}</button>`
+        )
+        .join("")}
+    </div>
+  `;
+  grid.innerHTML = `${recentBlock}${allBlock}`;
 }
 
 function initEmojiPicker() {
@@ -410,6 +455,7 @@ function initEmojiPicker() {
     const btn = e.target.closest(".emoji-btn");
     if (!btn) return;
     insertEmojiAtCursor($("#composer-text"), btn.dataset.emoji || "");
+    closeEmojiPicker();
   });
 }
 
@@ -545,8 +591,7 @@ function renderPostCard(post) {
   card.querySelector(".comment-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const input = e.target.querySelector("input");
-    addComment(post.id, input.value.trim(), card);
-    input.value = "";
+    addComment(post.id, input.value.trim(), card, input);
   });
   card.querySelector(".btn-share")?.addEventListener("click", () => sharePost(post.id));
   card.querySelector(".btn-delete-post")?.addEventListener("click", () => deletePost(post.id));
@@ -635,30 +680,92 @@ async function toggleLike(postId, card) {
     toast("Logga in för att gilla.", "error");
     return;
   }
+  const btn = card.querySelector(".btn-like");
+  const label = card.querySelector(".likes-label");
+  if (!btn || !label) return;
+  if (btn.dataset.pending === "1") return;
+
+  const wasLiked = btn.classList.contains("liked");
+  const currentLikes = Number.parseInt(label.textContent, 10) || 0;
+  const optimisticLiked = !wasLiked;
+  const optimisticCount = Math.max(
+    0,
+    currentLikes + (optimisticLiked ? 1 : -1)
+  );
+
+  btn.dataset.pending = "1";
+  btn.disabled = true;
+  btn.classList.toggle("liked", optimisticLiked);
+  label.textContent = `${optimisticCount} gilla-markeringar`;
+
   try {
     const { data } = await api(`/api/v1/posts/${postId}/like`, { method: "POST" });
-    const btn = card.querySelector(".btn-like");
     btn.classList.toggle("liked", data.liked);
-    card.querySelector(".likes-label").textContent = `${data.likes_count} gilla-markeringar`;
+    label.textContent = `${data.likes_count} gilla-markeringar`;
   } catch (e) {
+    btn.classList.toggle("liked", wasLiked);
+    label.textContent = `${currentLikes} gilla-markeringar`;
     toast(e.message, "error");
+  } finally {
+    btn.disabled = false;
+    delete btn.dataset.pending;
   }
 }
 
-async function addComment(postId, message, card) {
+async function addComment(postId, message, card, input) {
   if (!getSession()) return toast("Logga in.", "error");
   if (!message) return;
+  const me = getSession().user;
+  const box = card.querySelector(".post-comments");
+  const countEl = card.querySelector(".comments-count");
+  const sendBtn = card.querySelector(".comment-form button[type='submit']");
+  if (!box || !countEl) return;
+
+  const beforeCount = card.querySelectorAll(".comment").length;
+  const tempId = `tmp-${Date.now()}`;
+  box.insertAdjacentHTML(
+    "beforeend",
+    renderComment(
+      {
+        id: tempId,
+        username: me.username,
+        message,
+        author: {
+          username: me.username,
+          display_name: displayName(me),
+          avatar_url: avatarSrc(me),
+        },
+      },
+      me.username
+    )
+  );
+  const tempNode = box.querySelector(`.comment:last-child`);
+  if (tempNode) tempNode.classList.add("pending");
+  countEl.textContent = `${beforeCount + 1} kommentarer`;
+  if (input) input.value = "";
+  if (input) input.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
+
   try {
     const { data } = await api(`/api/v1/posts/${postId}/comments`, {
       method: "POST",
       body: JSON.stringify({ message }),
     });
-    const box = card.querySelector(".post-comments");
-    box.insertAdjacentHTML("beforeend", renderComment(data.comment));
+    const confirmed = document.createElement("div");
+    confirmed.innerHTML = renderComment(data.comment, me.username);
+    const node = confirmed.firstElementChild;
+    if (tempNode && node) tempNode.replaceWith(node);
+    else if (node) box.appendChild(node);
     const n = card.querySelectorAll(".comment").length;
-    card.querySelector(".comments-count").textContent = `${n} kommentarer`;
+    countEl.textContent = `${n} kommentarer`;
   } catch (e) {
+    tempNode?.remove();
+    countEl.textContent = `${beforeCount} kommentarer`;
+    if (input && !input.value) input.value = message;
     toast(e.message, "error");
+  } finally {
+    if (input) input.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
