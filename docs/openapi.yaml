@@ -8,7 +8,7 @@ info:
   contact:
     name: Flödet
 servers:
-  - url: https://community-auth-forum.netlify.app
+  - url: https://community-auth-platform.netlify.app
     description: Produktion (Netlify)
   - url: http://127.0.0.1:3000
     description: Lokal utveckling

@@ -1,7 +1,7 @@
 {
-  "name": "community-auth-forum",
+  "name": "community-auth-platform",
   "version": "4.1.0",
-  "description": "Flödet – socialt nätverk med profiler, vänner och flöde (Node.js + PostgreSQL)",
+  "description": "Community auth platform with profiles, feed, friends, and direct messaging (Node.js + PostgreSQL)",
   "type": "commonjs",
   "main": "build/app/index.js",
   "engines": {
