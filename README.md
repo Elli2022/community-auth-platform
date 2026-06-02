@@ -79,7 +79,16 @@ Requires `DATABASE_URL` (see `.env.example`).
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Production | Secret for signing JWTs |
 | `PUBLIC_SITE_URL` | Production | Base URL for password-reset links |
-| `RESEND_API_KEY` | Optional | Email delivery for account recovery |
+| `RESEND_API_KEY` | Production | Sends forgot-password / forgot-username emails via [Resend](https://resend.com) |
+| `EMAIL_FROM` | Production | Verified sender, e.g. `Flödet <noreply@yourdomain.com>` |
+| `ALLOW_DEV_RECOVERY_FALLBACK` | Local only | `true` shows reset link/username in the UI when Resend is not configured — never set on Netlify |
+
+### Email recovery (Netlify)
+
+1. Create a Resend API key and add `RESEND_API_KEY` to the site’s **Production** environment variables.
+2. Set `EMAIL_FROM` to a domain you verified in Resend (or use Resend’s test sender for development).
+3. Redeploy. Users then get a generic confirmation in the UI; credentials are only sent by email.
+4. For local dev without Resend, set `ALLOW_DEV_RECOVERY_FALLBACK=true` in `.env`.
 
 ## API Documentation
 

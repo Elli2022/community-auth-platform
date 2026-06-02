@@ -8,7 +8,11 @@ type UsersRepository = ReturnType<typeof makeUsersRepository>;
 
 const GENERIC_EMAIL_MSG =
   "Om e-postadressen är kopplad till ett konto skickar vi instruktioner inom några minuter.";
-const ENABLE_DEV_RECOVERY_FALLBACK = process.env.NODE_ENV !== "production";
+
+/** Opt-in only (local .env). Netlify esbuild can inline NODE_ENV at bundle time. */
+function allowDevRecoveryFallback(): boolean {
+  return process.env.ALLOW_DEV_RECOVERY_FALLBACK === "true";
+}
 
 export function createAuthRecovery({
   usersRepository,
@@ -49,7 +53,7 @@ export function createAuthRecovery({
         `,
       });
 
-      if (!sent && ENABLE_DEV_RECOVERY_FALLBACK) {
+      if (!sent && allowDevRecoveryFallback()) {
         result.dev_reset_url = resetUrl;
         result.message +=
           " E-postutskick är inte aktiverat — använd återställningslänken nedan.";
@@ -89,7 +93,7 @@ export function createAuthRecovery({
         `,
       });
 
-      if (!sent && ENABLE_DEV_RECOVERY_FALLBACK) {
+      if (!sent && allowDevRecoveryFallback()) {
         result.dev_username = user.username;
         result.message +=
           " E-postutskick är inte aktiverat — ditt användarnamn visas nedan.";
