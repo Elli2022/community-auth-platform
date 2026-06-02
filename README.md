@@ -1,57 +1,80 @@
 # Community Auth Platform
 
-![CI](https://github.com/Elli2022/community-auth-platform/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/Elli2022/community-auth-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Elli2022/community-auth-platform/actions/workflows/ci.yml)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
-![Express](https://img.shields.io/badge/Express-API-000000)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1)
 ![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7)
 
-Full-stack community platform with authentication, profiles, social feed, friend requests, direct messaging, and notifications. The product UI is branded **Flödet** (Swedish).
+Production-style full-stack community app: authentication, profiles, social feed, friend graph, direct messaging, and notifications. The UI product name is **Flödet** (Swedish).
 
-## Live Demo
+**Live demo:** [community-auth-platform.netlify.app](https://community-auth-platform.netlify.app)
 
-https://community-auth-platform.netlify.app
+## Why this project
+
+I built this to practice end-to-end product delivery—not a tutorial clone. The focus is realistic flows recruiters care about: secure auth, data modeling, API design, deployable architecture, and a usable interface.
+
+## Highlights (what to look at in a review)
+
+- **Layered backend:** Express routes → use cases → repositories over PostgreSQL (clear separation for testing and changes).
+- **Serverless production:** Single Express app packaged as a Netlify Function with static SPA on CDN.
+- **Security-minded auth recovery:** Generic API responses (no account enumeration); credentials are emailed, not shown in the UI in production.
+- **Social domain model:** Wall posts, likes/comments/shares, friend requests, DM threads with read/delivery state.
+- **Live updates:** SSE for unread badges with polling fallback.
+- **Contract-first API:** OpenAPI 3.1 spec + CI on every push.
 
 ## Screenshots
 
-### Feed
-![Feed](./public/screenshots/feed.png)
-
-### Profile
-![Profile](./public/screenshots/profile.png)
-
-### Messages
-![Messages](./public/screenshots/messages.png)
-
-## Features
-
-- JWT authentication with registration, login, and password recovery
-- User profiles with avatar, cover color, and timeline posts
-- Personal feed and global wall with likes, comments, and shares
-- Friend requests and accepted-friends-only direct messaging
-- Read receipts and delivery status for messages
-- Real-time unread badges via SSE (with polling fallback)
-- OpenAPI 3.1 specification and GitHub Actions CI
-
-## Tech Stack
-
-- **Frontend:** Vanilla SPA (`public/`) with hash routing
-- **Backend:** Express + TypeScript, bundled for Netlify Functions
-- **Database:** PostgreSQL (Neon in production, Docker locally)
-- **Security:** bcrypt, JWT, Helmet, CORS, HTML sanitization, rate limiting patterns
+| Feed | Profile | Messages |
+|------|---------|----------|
+| ![Feed](./public/screenshots/feed.png) | ![Profile](./public/screenshots/profile.png) | ![Messages](./public/screenshots/messages.png) |
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-  SPA[Static SPA] --> Netlify[Netlify CDN]
-  SPA --> API[Netlify Function]
-  API --> Express[Express App]
-  Express --> DB[(PostgreSQL)]
+flowchart TB
+  subgraph client [Browser]
+    SPA[Vanilla SPA - hash routing]
+  end
+  subgraph edge [Netlify]
+    CDN[Static assets]
+    FN[Serverless function]
+  end
+  subgraph app [Express application]
+    UC[Use cases]
+    REPO[Repositories]
+  end
+  DB[(PostgreSQL / Neon)]
+  RESEND[Resend email API]
+
+  SPA --> CDN
+  SPA --> FN
+  FN --> UC
+  UC --> REPO
+  REPO --> DB
+  UC --> RESEND
 ```
 
-## Local Development
+## Tech stack
+
+| Layer | Choice | Rationale |
+|-------|--------|-----------|
+| Frontend | Vanilla TS/JS SPA | Small bundle, no framework lock-in for this scope |
+| Backend | Express + TypeScript | Familiar HTTP model, easy to test use cases |
+| Database | PostgreSQL | Relational fit for users, friendships, messages |
+| Auth | JWT + bcrypt | Stateless API tokens; hashed passwords at rest |
+| Deploy | Netlify Functions + Neon | Low ops, fast demos, production-like env vars |
+| Email | Resend | Transactional mail for password/username recovery |
+
+## Security notes
+
+- Passwords hashed with bcrypt; JWT for session/API auth.
+- HTML sanitization and Helmet/CORS on the API.
+- Recovery endpoints return the same message whether or not the email exists.
+- Production builds do **not** expose reset links or usernames in the browser when email is configured.
+- Secrets (`JWT_SECRET`, `DATABASE_URL`, `RESEND_API_KEY`) live in environment variables only.
+
+## Local development
 
 ```bash
 git clone https://github.com/Elli2022/community-auth-platform.git
@@ -59,10 +82,17 @@ cd community-auth-platform
 cp .env.example .env
 npm install
 npm run db:up
+npm run db:migrate
 npm run dev
 ```
 
 Open http://127.0.0.1:3000
+
+Without Resend, add to `.env` for local recovery testing:
+
+```env
+ALLOW_DEV_RECOVERY_FALLBACK=true
+```
 
 ### Tests
 
@@ -70,40 +100,37 @@ Open http://127.0.0.1:3000
 npm test
 ```
 
-Requires `DATABASE_URL` (see `.env.example`).
-
-## Environment Variables
+## Environment variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `JWT_SECRET` | Production | Secret for signing JWTs |
-| `PUBLIC_SITE_URL` | Production | Base URL for password-reset links |
-| `RESEND_API_KEY` | Production | Sends forgot-password / forgot-username emails via [Resend](https://resend.com) |
-| `EMAIL_FROM` | Production | Verified sender, e.g. `Flödet <noreply@yourdomain.com>` |
-| `ALLOW_DEV_RECOVERY_FALLBACK` | Local only | `true` shows reset link/username in the UI when Resend is not configured — never set on Netlify |
+| `JWT_SECRET` | Production | Signs JWTs |
+| `PUBLIC_SITE_URL` | Production | Base URL in recovery emails |
+| `RESEND_API_KEY` | Production | Sends recovery email via [Resend](https://resend.com) |
+| `EMAIL_FROM` | Production | Verified sender address |
+| `ALLOW_DEV_RECOVERY_FALLBACK` | Local only | Shows reset link/username in UI when email is off |
 
-### Email recovery (Netlify)
+## API documentation
 
-1. Create a Resend API key and add `RESEND_API_KEY` to the site’s **Production** environment variables.
-2. Set `EMAIL_FROM` to a domain you verified in Resend (or use Resend’s test sender for development).
-3. Redeploy. Users then get a generic confirmation in the UI; credentials are only sent by email.
-4. For local dev without Resend, set `ALLOW_DEV_RECOVERY_FALLBACK=true` in `.env`.
+- Repo: [docs/openapi.yaml](./docs/openapi.yaml)
+- Deployed: `/openapi.yaml` on the live site
 
-## API Documentation
-
-- [docs/openapi.yaml](./docs/openapi.yaml)
-- Production spec: `/openapi.yaml` on the deployed site
-
-## Project Structure
+## Project structure
 
 ```
-public/              # SPA (Flödet UI)
+public/              # SPA (Flödet UI) + screenshots
 netlify/functions/   # Serverless API entry
-src/app/             # Express routes, use cases, repositories
+src/app/             # Express app, use cases, repositories
 docs/openapi.yaml    # API specification
-prisma/              # Not used — SQL migrations in src/app/db
 ```
+
+## Interview talking points
+
+1. **Tradeoff:** Monolith Express in one function vs. split microservices—chose monolith for portfolio clarity and lower cold-start complexity.
+2. **Recovery flow:** Designed against enumeration and accidental credential leaks when `NODE_ENV` is inlined at bundle time (explicit dev fallback flag).
+3. **Scaling path:** Repositories isolate SQL; could add read replicas, queue for notifications, or WebSockets without rewriting use cases.
+4. **AI usage:** Used AI for scaffolding and iteration; architecture, security rules, deploy config, and review decisions are intentional and documented here.
 
 ## License
 

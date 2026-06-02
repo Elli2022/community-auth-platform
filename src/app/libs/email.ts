@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 export async function sendEmail({
   to,
   subject,
@@ -11,6 +13,7 @@ export async function sendEmail({
   const from = process.env.EMAIL_FROM?.trim() || "Flödet <onboarding@resend.dev>";
 
   if (!apiKey) {
+    logger.warn("[email] RESEND_API_KEY is not set; skipping send");
     return { sent: false };
   }
 
@@ -23,8 +26,13 @@ export async function sendEmail({
       },
       body: JSON.stringify({ from, to: [to], subject, html }),
     });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.warn(`[email] Resend returned ${res.status}: ${body.slice(0, 200)}`);
+    }
     return { sent: res.ok };
-  } catch {
+  } catch (err) {
+    logger.warn(`[email] send failed: ${err instanceof Error ? err.message : "unknown"}`);
     return { sent: false };
   }
 }
