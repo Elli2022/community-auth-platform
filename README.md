@@ -6,7 +6,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1)
 ![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7)
 
-Production-style full-stack community app: authentication, profiles, social feed, friend graph, direct messaging, and notifications. The UI product name is **Flödet** (Swedish).
+Production-style full-stack community app: authentication, profiles, social feed, friend graph, direct messaging, and notifications. The UI product name is **Community Hub** (Swedish).
 
 **Live demo:** [community-auth-platform.netlify.app](https://community-auth-platform.netlify.app)
 
@@ -119,7 +119,7 @@ npm test
 ## Project structure
 
 ```
-public/              # SPA (Flödet UI) + screenshots
+public/              # SPA (Community Hub UI) + screenshots
 netlify/functions/   # Serverless API entry
 src/app/             # Express app, use cases, repositories
 docs/openapi.yaml    # API specification

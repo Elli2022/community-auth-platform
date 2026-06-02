@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
-  title: Flödet API
+  title: Community Hub API
   description: |
-    REST API för Flödet (socialt nätverk med profiler, flöde, vänner och direktmeddelanden).
+    REST API för Community Hub (socialt nätverk med profiler, flöde, vänner och direktmeddelanden).
     Alla lyckade svar använder `{ "err": 0, "data": ... }`. Fel `{ "err": 1, "message": "..." }`.
   version: 1.0.0
   contact:
-    name: Flödet
+    name: Community Hub
 servers:
   - url: https://community-auth-platform.netlify.app
     description: Produktion (Netlify)
