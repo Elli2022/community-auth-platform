@@ -1,3 +1,4 @@
+import { getConnectionString } from "@netlify/database";
 import { neon } from "@neondatabase/serverless";
 import pg from "pg";
 
@@ -6,9 +7,26 @@ export type SqlClient = ReturnType<typeof neon>;
 let sqlClient: SqlClient | null = null;
 let pgPool: pg.Pool | null = null;
 
+function readNetlifyDatabaseUrl(): string | null {
+  if (!process.env.NETLIFY && !process.env.SITE_ID) {
+    return null;
+  }
+
+  try {
+    return getConnectionString();
+  } catch {
+    return (
+      process.env.NETLIFY_DB_URL?.trim() ||
+      process.env.NETLIFY_DATABASE_URL?.trim() ||
+      null
+    );
+  }
+}
+
 export function getDatabaseUrl(): string {
   const url =
     process.env.DATABASE_URL?.trim() ||
+    readNetlifyDatabaseUrl() ||
     process.env.NETLIFY_DB_URL?.trim() ||
     process.env.NETLIFY_DATABASE_URL?.trim();
 
