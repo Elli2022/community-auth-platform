@@ -1,6 +1,6 @@
-# Community Auth Platform
+# Community Hub
 
-[![CI](https://github.com/Elli2022/community-auth-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Elli2022/community-auth-platform/actions/workflows/ci.yml)
+[![CI](https://github.com/Elli2022/community-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/Elli2022/community-hub/actions/workflows/ci.yml)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1)
@@ -77,8 +77,8 @@ flowchart TB
 ## Local development
 
 ```bash
-git clone https://github.com/Elli2022/community-auth-platform.git
-cd community-auth-platform
+git clone https://github.com/Elli2022/community-hub.git
+cd community-hub
 cp .env.example .env
 npm install
 npm run db:up

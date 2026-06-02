@@ -1,5 +1,5 @@
 {
-  "name": "community-auth-platform",
+  "name": "community-hub",
   "version": "4.1.0",
   "description": "Community auth platform with profiles, feed, friends, and direct messaging (Node.js + PostgreSQL)",
   "type": "commonjs",
