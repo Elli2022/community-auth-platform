@@ -7,10 +7,14 @@ let sqlClient: SqlClient | null = null;
 let pgPool: pg.Pool | null = null;
 
 export function getDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL?.trim();
+  const url =
+    process.env.DATABASE_URL?.trim() ||
+    process.env.NETLIFY_DB_URL?.trim() ||
+    process.env.NETLIFY_DATABASE_URL?.trim();
+
   if (!url) {
     throw new Error(
-      "DATABASE_URL saknas. Sätt den i .env (lokalt) eller i Netlify Environment variables."
+      "DATABASE_URL saknas. Sätt den i .env (lokalt) eller aktivera Netlify Database / miljövariabler i produktion."
     );
   }
   return url;
